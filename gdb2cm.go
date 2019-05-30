@@ -55,14 +55,14 @@ func main() {
 	if !strings.HasSuffix(*dashboardFile, ".json") {
 		panic(fmt.Sprintf("%s is not a file...exiting", *dashboardFile))
 	}
-	dfns := strings.TrimSuffix(*dashboardFile, ".json")
+	//dfns := strings.TrimSuffix(*dashboardFile, ".json")
 	bdf := filepath.Base(*dashboardFile)
 	bdfns := strings.TrimSuffix(bdf, ".json")
 	if *manifestFile == "" {
-		*manifestFile = fmt.Sprintf("%s.yaml", dfns)
+		*manifestFile = fmt.Sprintf("%s.yaml", bdfns)
 	}
 	if *dashboardName == "" {
-		*dashboardName = bdfns
+		*dashboardName = strings.Replace(bdfns, "_", "-", -1)
 	}
 
 	db := readDashboardJson(*dashboardFile)
