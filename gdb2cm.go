@@ -71,6 +71,11 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	dp, err := d.EncodePretty()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Sprintln(string(dd))
 	cm := grafanaConfigMap{
 		ApiVersion: "v1",
 		Kind:       "ConfigMap",
@@ -81,7 +86,7 @@ func main() {
 				GrafanaDashboard: "1",
 			},
 		},
-		Data: map[string]string{bdf: string(dd)},
+		Data: map[string]string{bdf: fmt.Sprintln(string(dp))},
 	}
 	md, err := yaml.Marshal(&cm)
 	if err != nil {
