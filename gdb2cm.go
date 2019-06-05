@@ -80,7 +80,7 @@ func main() {
 		ApiVersion: "v1",
 		Kind:       "ConfigMap",
 		Metadata: configMapMetadata{
-			Name:      bdfns,
+			Name:      *dashboardName,
 			Namespace: *k8sNamespace,
 			Labels: configMapMetadataLabels{
 				GrafanaDashboard: "1",
