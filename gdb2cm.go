@@ -92,5 +92,8 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	ioutil.WriteFile(*manifestFile, md, 0666)
+	err = ioutil.WriteFile(*manifestFile, md, 0666)
+	if err != nil {
+		panic(fmt.Sprintf("Error: %s could not be written (%s)", *manifestFile, err))
+	}
 }
