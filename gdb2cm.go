@@ -16,6 +16,7 @@ import (
 var (
 	dashboardFile = kingpin.Flag("file.dashboard", "Grafana dashboard JSON file to convert.").Short('f').Required().ExistingFile()
 	manifestFile  = kingpin.Flag("file.output", "Output file for the dashboard configmap.").Short('o').Default("").String()
+	compact       = kingpin.Flag("file.compact", "Output file with compact JSON embedded in ConfigMap.").Short('c').Default("false").Bool()
 	dashboardName = kingpin.Flag("dashboard.name", "Dashboard configmap name. (Default: dashboard file basename)").Short('n').Default("").String()
 	k8sNamespace  = kingpin.Flag("k8s.namespace", "kubernetes namespace for the configmap.").Short('N').Default("monitoring").String()
 )
@@ -71,10 +72,17 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	dp, err := d.EncodePretty()
+
+	var dp []byte
+	if *compact {
+		dp, err = d.Encode()
+	} else {
+		dp, err = d.EncodePretty()
+	}
 	if err != nil {
 		panic(err)
 	}
+
 	fmt.Sprintln(string(dd))
 	cm := grafanaConfigMap{
 		ApiVersion: "v1",
