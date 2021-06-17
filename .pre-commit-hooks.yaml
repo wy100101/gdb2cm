@@ -1,0 +1,8 @@
+---
+- id: gdb2cm
+  name: gdb2cm
+  description: Grafana dashboard to k8s ConfigMap
+  language: golang
+  entry: gdb2cm
+  always_run: true
+  args: []

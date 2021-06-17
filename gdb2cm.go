@@ -14,12 +14,15 @@ import (
 )
 
 var (
-	dashboardFile  = kingpin.Flag("file.dashboard", "Grafana dashboard JSON file to convert.").Short('f').Required().ExistingFile()
-	manifestFile   = kingpin.Flag("file.output", "Output file for the dashboard configmap.").Short('o').Default("").String()
-	compact        = kingpin.Flag("file.compact", "Output file with compact JSON embedded in ConfigMap.").Short('c').Default("false").Bool()
-	dashboardName  = kingpin.Flag("dashboard.name", "Dashboard configmap name. (Default: dashboard file basename)").Short('n').Default("").String()
-	k8sAnnotations = kingpin.Flag("k8s.annotations", "Add an annotation to add the dashboard configmap (key=value)").Short('a').StringMap()
-	k8sNamespace   = kingpin.Flag("k8s.namespace", "kubernetes namespace for the configmap.").Short('N').Default("monitoring").String()
+	dashboardsDirGlob = kingpin.Flag("dir.dashboard", "Glob of directories with Grafana dashboard JSON files to convert.").Short('d').String()
+	dashboardFile     = kingpin.Flag("file.dashboard", "Grafana dashboard JSON file to convert.").Short('f').ExistingFile()
+	manifestsDir      = kingpin.Flag("dir.output", "Output directory for the dashboard configmaps.").Short('m').Default("").ExistingDir()
+	manifestFile      = kingpin.Flag("file.output", "Output file for the dashboard configmap.").Short('o').Default("").String()
+	parentDirAsTeam   = kingpin.Flag("dashboard.team", "If true, use the parent directory name as the team name for ConfigMap names.  Only used if dashboardsDir/manifestsDir set.").Default("false").Bool()
+	compact           = kingpin.Flag("file.compact", "Output file with compact JSON embedded in ConfigMap.").Short('c').Default("false").Bool()
+	dashboardName     = kingpin.Flag("dashboard.name", "Dashboard configmap name. (Default: dashboard file basename)").Short('n').Default("").String()
+	k8sAnnotations    = kingpin.Flag("k8s.annotations", "Add an annotation to add the dashboard configmap (key=value)").Short('a').StringMap()
+	k8sNamespace      = kingpin.Flag("k8s.namespace", "kubernetes namespace for the configmap.").Short('N').Default("monitoring").String()
 )
 
 type configMapMetadataLabels struct {
@@ -53,33 +56,58 @@ func readDashboardJson(file string) *models.Dashboard {
 	return dbo
 }
 
-func main() {
-	kingpin.Parse()
-	if !strings.HasSuffix(*dashboardFile, ".json") {
-		panic(fmt.Sprintf("%s is not a file...exiting", *dashboardFile))
+func processDir(dbDirGlob, mDir string) {
+	dirs, err := filepath.Glob(dbDirGlob)
+	if err != nil {
+		panic(err)
+	}
+	for _, dir := range dirs {
+		pre := ""
+		if *parentDirAsTeam {
+			pre = fmt.Sprintf("%s-", filepath.Base(filepath.Dir(dir)))
+		}
+		filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				panic(err.Error())
+			}
+			if filepath.Ext(path) != ".json" {
+				return nil
+			}
+			fnns := strings.TrimSuffix(filepath.Base(path), ".json")
+			name := fmt.Sprintf("%s%s", pre, fnns)
+			mp := filepath.Join(mDir, fmt.Sprintf("%s.db.configmap.yaml", name))
+			processFile(path, mp, name)
+			return nil
+		})
+	}
+}
+
+func processFile(d, m, n string) {
+	if !strings.HasSuffix(d, ".json") {
+		panic(fmt.Sprintf("%s is not a file...exiting", d))
 	}
 	//dfns := strings.TrimSuffix(*dashboardFile, ".json")
-	bdf := filepath.Base(*dashboardFile)
+	bdf := filepath.Base(d)
 	bdfns := strings.TrimSuffix(bdf, ".json")
-	if *manifestFile == "" {
-		*manifestFile = fmt.Sprintf("%s.yaml", bdfns)
+	if m == "" {
+		m = fmt.Sprintf("%s.yaml", bdfns)
 	}
-	if *dashboardName == "" {
-		*dashboardName = strings.Replace(bdfns, "_", "-", -1)
+	if n == "" {
+		n = strings.Replace(bdfns, "_", "-", -1)
 	}
 
-	db := readDashboardJson(*dashboardFile)
-	d := db.Data
-	dd, err := d.Encode()
+	db := readDashboardJson(d)
+	dt := db.Data
+	dd, err := dt.Encode()
 	if err != nil {
 		panic(err)
 	}
 
 	var dp []byte
 	if *compact {
-		dp, err = d.Encode()
+		dp, err = dt.Encode()
 	} else {
-		dp, err = d.EncodePretty()
+		dp, err = dt.EncodePretty()
 	}
 	if err != nil {
 		panic(err)
@@ -90,7 +118,7 @@ func main() {
 		ApiVersion: "v1",
 		Kind:       "ConfigMap",
 		Metadata: configMapMetadata{
-			Name:      *dashboardName,
+			Name:      n,
 			Namespace: *k8sNamespace,
 			Labels: configMapMetadataLabels{
 				GrafanaDashboard: "1",
@@ -103,8 +131,22 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	err = ioutil.WriteFile(*manifestFile, md, 0666)
+	err = ioutil.WriteFile(m, md, 0666)
 	if err != nil {
-		panic(fmt.Sprintf("Error: %s could not be written (%s)", *manifestFile, err))
+		panic(fmt.Sprintf("Error: %s could not be written (%s)", m, err))
+	}
+}
+
+func main() {
+	fmt.Println("here 1")
+	kingpin.Parse()
+	fmt.Println("here 2")
+	if *dashboardsDirGlob != "" && *manifestsDir != "" {
+		processDir(*dashboardsDirGlob, *manifestsDir)
+	} else if *dashboardFile != "" && *manifestFile != "" {
+		processFile(*dashboardFile, *manifestFile, *dashboardName)
+	} else {
+		panic(fmt.Sprintf("must set flags [(-f and -o) or (-d and -m)], -f: %s, -o: %s, -d: %s, -m: %s",
+			*dashboardFile, *manifestFile, *dashboardsDirGlob, *manifestsDir))
 	}
 }
