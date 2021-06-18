@@ -10,6 +10,7 @@ import (
 	"github.com/alecthomas/kingpin"
 	"github.com/grafana/grafana/pkg/components/simplejson"
 	"github.com/grafana/grafana/pkg/models"
+	"github.com/rs/zerolog/log"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -46,11 +47,11 @@ type grafanaConfigMap struct {
 func readDashboardJson(file string) *models.Dashboard {
 	fh, err := os.Open(file)
 	if err != nil {
-		panic(fmt.Sprintf("Error: %s could not be opened (%s)", file, err))
+		log.Fatal().Msg(fmt.Sprintf("Error: %s could not be opened (%s)", file, err))
 	}
 	dbj, err := simplejson.NewFromReader(fh)
 	if err != nil {
-		panic(fmt.Sprintf("Error: %s contents could not be converted to simplejson (%s)", file, err))
+		log.Fatal().Msg(fmt.Sprintf("Error: %s contents could not be converted to simplejson (%s)", file, err))
 	}
 	dbo := models.NewDashboardFromJson(dbj)
 	return dbo
@@ -59,7 +60,7 @@ func readDashboardJson(file string) *models.Dashboard {
 func processDir(dbDirGlob, mDir string) {
 	dirs, err := filepath.Glob(dbDirGlob)
 	if err != nil {
-		panic(err)
+		log.Fatal().Msg(err.Error())
 	}
 	for _, dir := range dirs {
 		pre := ""
@@ -68,7 +69,7 @@ func processDir(dbDirGlob, mDir string) {
 		}
 		filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
-				panic(err.Error())
+				log.Fatal().Msg(err.Error())
 			}
 			if filepath.Ext(path) != ".json" {
 				return nil
@@ -84,7 +85,7 @@ func processDir(dbDirGlob, mDir string) {
 
 func processFile(d, m, n string) {
 	if !strings.HasSuffix(d, ".json") {
-		panic(fmt.Sprintf("%s is not a file...exiting", d))
+		log.Fatal().Msg(fmt.Sprintf("%s is not a file...exiting", d))
 	}
 	//dfns := strings.TrimSuffix(*dashboardFile, ".json")
 	bdf := filepath.Base(d)
@@ -100,7 +101,7 @@ func processFile(d, m, n string) {
 	dt := db.Data
 	dd, err := dt.Encode()
 	if err != nil {
-		panic(err)
+		log.Fatal().Msg(err.Error())
 	}
 
 	var dp []byte
@@ -110,7 +111,7 @@ func processFile(d, m, n string) {
 		dp, err = dt.EncodePretty()
 	}
 	if err != nil {
-		panic(err)
+		log.Fatal().Msg(err.Error())
 	}
 
 	fmt.Sprintln(string(dd))
@@ -129,24 +130,22 @@ func processFile(d, m, n string) {
 	}
 	md, err := yaml.Marshal(&cm)
 	if err != nil {
-		panic(err)
+		log.Fatal().Msg(err.Error())
 	}
 	err = ioutil.WriteFile(m, md, 0666)
 	if err != nil {
-		panic(fmt.Sprintf("Error: %s could not be written (%s)", m, err))
+		log.Fatal().Msg(fmt.Sprintf("Error: %s could not be written (%s)", m, err))
 	}
 }
 
 func main() {
-	fmt.Println("here 1")
 	kingpin.Parse()
-	fmt.Println("here 2")
 	if *dashboardsDirGlob != "" && *manifestsDir != "" {
 		processDir(*dashboardsDirGlob, *manifestsDir)
 	} else if *dashboardFile != "" && *manifestFile != "" {
 		processFile(*dashboardFile, *manifestFile, *dashboardName)
 	} else {
-		panic(fmt.Sprintf("must set flags [(-f and -o) or (-d and -m)], -f: %s, -o: %s, -d: %s, -m: %s",
+		log.Fatal().Msg(fmt.Sprintf("must set flags [(-f and -o) or (-d and -m)], -f: %s, -o: %s, -d: %s, -m: %s",
 			*dashboardFile, *manifestFile, *dashboardsDirGlob, *manifestsDir))
 	}
 }
