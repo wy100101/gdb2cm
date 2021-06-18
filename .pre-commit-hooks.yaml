@@ -6,3 +6,4 @@
   entry: gdb2cm
   always_run: true
   args: []
+  pass_filenames: false
