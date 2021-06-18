@@ -139,9 +139,9 @@ func processFile(d, m, n string) {
 	}
 }
 
-func cleanDir(dir, suffix string) {
+func cleanDir(dir, pattern string) {
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
-		matched, err := filepath.Match(filepath.Base(path), suffix)
+		matched, err := filepath.Match(pattern, filepath.Base(path))
 		if err != nil {
 			return err
 		}
