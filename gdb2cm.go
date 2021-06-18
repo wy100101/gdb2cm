@@ -66,8 +66,9 @@ func processDir(dbDirGlob, mDir string) {
 	for _, dir := range dirs {
 		team := ""
 		if *parentDirAsTeam {
-			team = fmt.Sprintf("%s-", filepath.Base(filepath.Dir(dir)))
+			team = fmt.Sprintf("%s", filepath.Base(filepath.Dir(dir)))
 		}
+		teamsuf := fmt.Sprintf("%s-", team)
 		filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
 				log.Fatal().Msg(err.Error())
@@ -76,7 +77,7 @@ func processDir(dbDirGlob, mDir string) {
 				return nil
 			}
 			n := strings.TrimSuffix(filepath.Base(path), ".json")
-			pn := fmt.Sprintf("%s%s", team, n)
+			pn := fmt.Sprintf("%s%s", teamsuf, n)
 			mp := filepath.Join(mDir, fmt.Sprintf("%s.db.configmap.yaml", pn))
 			processFile(path, mp, n, team)
 			return nil
