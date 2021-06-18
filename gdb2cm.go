@@ -18,7 +18,7 @@ var (
 	dashboardsDirGlob = kingpin.Flag("dir.dashboard", "Glob of directories with Grafana dashboard JSON files to convert.").Short('d').String()
 	dashboardFile     = kingpin.Flag("file.dashboard", "Grafana dashboard JSON file to convert.").Short('f').ExistingFile()
 	manifestsDir      = kingpin.Flag("dir.output", "Output directory for the dashboard configmaps.").Short('m').Default("").ExistingDir()
-	cleanManifestsDir = kingpin.Flag("dir.clean", "Clean files in the manifests output directory with this suffix.").Short('c').Default("").String()
+	cleanManifestsDir = kingpin.Flag("dir.clean", "Clean files in the manifests output directory with this suffix.").Default("").String()
 	manifestFile      = kingpin.Flag("file.output", "Output file for the dashboard configmap.").Short('o').Default("").String()
 	parentDirAsTeam   = kingpin.Flag("dashboard.team", "If true, use the parent directory name as the team name for ConfigMap names.  Only used if dashboardsDir/manifestsDir set.").Default("false").Bool()
 	compact           = kingpin.Flag("file.compact", "Output file with compact JSON embedded in ConfigMap.").Short('c').Default("false").Bool()
