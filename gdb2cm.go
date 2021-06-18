@@ -64,9 +64,9 @@ func processDir(dbDirGlob, mDir string) {
 		log.Fatal().Msg(err.Error())
 	}
 	for _, dir := range dirs {
-		pre := ""
+		team := ""
 		if *parentDirAsTeam {
-			pre = fmt.Sprintf("%s-", filepath.Base(filepath.Dir(dir)))
+			team = fmt.Sprintf("%s-", filepath.Base(filepath.Dir(dir)))
 		}
 		filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
@@ -75,16 +75,16 @@ func processDir(dbDirGlob, mDir string) {
 			if filepath.Ext(path) != ".json" {
 				return nil
 			}
-			fnns := strings.TrimSuffix(filepath.Base(path), ".json")
-			name := fmt.Sprintf("%s%s", pre, fnns)
-			mp := filepath.Join(mDir, fmt.Sprintf("%s.db.configmap.yaml", name))
-			processFile(path, mp, name)
+			n := strings.TrimSuffix(filepath.Base(path), ".json")
+			pn := fmt.Sprintf("%s%s", team, n)
+			mp := filepath.Join(mDir, fmt.Sprintf("%s.db.configmap.yaml", pn))
+			processFile(path, mp, n, team)
 			return nil
 		})
 	}
 }
 
-func processFile(d, m, n string) {
+func processFile(d, m, n, t string) {
 	if !strings.HasSuffix(d, ".json") {
 		log.Fatal().Msg(fmt.Sprintf("%s is not a file...exiting", d))
 	}
@@ -129,6 +129,9 @@ func processFile(d, m, n string) {
 		},
 		Data: map[string]string{bdf: fmt.Sprintln(string(dp))},
 	}
+	if t != "" {
+		cm.Metadata.Annotations["grafana.org/folder"] = t
+	}
 	md, err := yaml.Marshal(&cm)
 	if err != nil {
 		log.Fatal().Msg(err.Error())
@@ -163,7 +166,7 @@ func main() {
 		}
 		processDir(*dashboardsDirGlob, *manifestsDir)
 	} else if *dashboardFile != "" && *manifestFile != "" {
-		processFile(*dashboardFile, *manifestFile, *dashboardName)
+		processFile(*dashboardFile, *manifestFile, *dashboardName, "")
 	} else {
 		log.Fatal().Msg(fmt.Sprintf("must set flags [(-f and -o) or (-d and -m)], -f: %s, -o: %s, -d: %s, -m: %s",
 			*dashboardFile, *manifestFile, *dashboardsDirGlob, *manifestsDir))
