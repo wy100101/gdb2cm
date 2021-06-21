@@ -1,4 +1,4 @@
-package main
+package gdb2cm
 
 import (
 	"fmt"
@@ -7,20 +7,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/alecthomas/kingpin"
 	"github.com/grafana/grafana/pkg/components/simplejson"
 	"github.com/grafana/grafana/pkg/models"
-	"github.com/rs/zerolog/log"
 	yaml "gopkg.in/yaml.v2"
-)
-
-var (
-	dashboardFile  = kingpin.Flag("file.dashboard", "Grafana dashboard JSON file to convert.").Short('f').Required().ExistingFile()
-	manifestFile   = kingpin.Flag("file.output", "Output file for the dashboard configmap.").Short('o').Default("").String()
-	compact        = kingpin.Flag("file.compact", "Output file with compact JSON embedded in ConfigMap.").Short('c').Default("false").Bool()
-	dashboardName  = kingpin.Flag("dashboard.name", "Dashboard configmap name. (Default: dashboard file basename)").Short('n').Default("").String()
-	k8sAnnotations = kingpin.Flag("k8s.annotations", "Add an annotation to add the dashboard configmap (key=value)").Short('a').StringMap()
-	k8sNamespace   = kingpin.Flag("k8s.namespace", "kubernetes namespace for the configmap.").Short('N').Default("monitoring").String()
 )
 
 type configMapMetadataLabels struct {
@@ -111,13 +100,4 @@ func ProcessDashboardFile(dbf, mff, ns, n string, c bool, as *map[string]string)
 	}
 	err = ioutil.WriteFile(mff, md, 0666)
 	return
-}
-
-func main() {
-	log.Logger = log.With().Caller().Logger()
-	kingpin.Parse()
-	err := ProcessDashboardFile(*dashboardFile, *manifestFile, *k8sNamespace, *dashboardName, *compact, k8sAnnotations)
-	if err != nil {
-		log.Fatal().Err(err).Msg("")
-	}
 }
