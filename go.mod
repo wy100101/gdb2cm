@@ -1,4 +1,4 @@
-module github.com/wy100101/gdb2cm
+module github.com/EJKinger/gdb2cm
 
 go 1.15
 
