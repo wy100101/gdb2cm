@@ -10,6 +10,7 @@ import (
 	"github.com/alecthomas/kingpin"
 	"github.com/grafana/grafana/pkg/components/simplejson"
 	"github.com/grafana/grafana/pkg/models"
+	"github.com/rs/zerolog/log"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -40,71 +41,83 @@ type grafanaConfigMap struct {
 	Data       map[string]string `yaml:"data,omitempty"`
 }
 
-func readDashboardJson(file string) *models.Dashboard {
+func readDashboardJson(file string) (*models.Dashboard, error) {
 	fh, err := os.Open(file)
 	if err != nil {
-		panic(fmt.Sprintf("Error: %s could not be opened (%s)", file, err))
+		return nil, fmt.Errorf("Error: %s could not be opened (%s)", file, err)
 	}
 	dbj, err := simplejson.NewFromReader(fh)
 	if err != nil {
-		panic(fmt.Sprintf("Error: %s contents could not be converted to simplejson (%s)", file, err))
+		return nil, fmt.Errorf("Error: %s contents could not be converted to simplejson (%s)", file, err)
 	}
 	dbo := models.NewDashboardFromJson(dbj)
-	return dbo
+	return dbo, nil
 }
 
-func main() {
-	kingpin.Parse()
-	if !strings.HasSuffix(*dashboardFile, ".json") {
-		panic(fmt.Sprintf("%s is not a file...exiting", *dashboardFile))
-	}
-	//dfns := strings.TrimSuffix(*dashboardFile, ".json")
-	bdf := filepath.Base(*dashboardFile)
-	bdfns := strings.TrimSuffix(bdf, ".json")
-	if *manifestFile == "" {
-		*manifestFile = fmt.Sprintf("%s.yaml", bdfns)
-	}
-	if *dashboardName == "" {
-		*dashboardName = strings.Replace(bdfns, "_", "-", -1)
+// ProcessDashboardFile(dashboardFile, manifestFile, namespace, name, compact, annotaitons) error
+// Given a dashboard json file, will generate a k8s ConfigMap and write it to the manifestFile location
+func ProcessDashboardFile(dbf, mff, ns, n string, c bool, as *map[string]string) (err error) {
+	if !strings.HasSuffix(dbf, ".json") {
+		return fmt.Errorf("%s is not a json file", dbf)
 	}
 
-	db := readDashboardJson(*dashboardFile)
-	d := db.Data
-	dd, err := d.Encode()
+	bdf := filepath.Base(dbf)
+	bdfns := strings.TrimSuffix(bdf, ".json")
+	if mff == "" {
+		mff = fmt.Sprintf("%s.yaml", bdfns)
+	}
+	if n == "" {
+		n = strings.Replace(bdfns, "_", "-", -1)
+	}
+
+	db, err := readDashboardJson(dbf)
 	if err != nil {
-		panic(err)
+		return err
+	}
+	d := db.Data
+	_, err = d.Encode()
+	if err != nil {
+		return err
 	}
 
 	var dp []byte
-	if *compact {
+	if c {
 		dp, err = d.Encode()
 	} else {
 		dp, err = d.EncodePretty()
 	}
 	if err != nil {
-		panic(err)
+		return err
 	}
 
-	fmt.Sprintln(string(dd))
 	cm := grafanaConfigMap{
 		ApiVersion: "v1",
 		Kind:       "ConfigMap",
 		Metadata: configMapMetadata{
-			Name:      *dashboardName,
-			Namespace: *k8sNamespace,
+			Name: n,
 			Labels: configMapMetadataLabels{
 				GrafanaDashboard: "1",
 			},
-			Annotations: *k8sAnnotations,
+			Annotations: *as,
 		},
 		Data: map[string]string{bdf: fmt.Sprintln(string(dp))},
 	}
+	if ns != "" {
+		cm.Metadata.Namespace = ns
+	}
 	md, err := yaml.Marshal(&cm)
 	if err != nil {
-		panic(err)
+		return err
 	}
-	err = ioutil.WriteFile(*manifestFile, md, 0666)
+	err = ioutil.WriteFile(mff, md, 0666)
+	return
+}
+
+func main() {
+	log.Logger = log.With().Caller().Logger()
+	kingpin.Parse()
+	err := ProcessDashboardFile(*dashboardFile, *manifestFile, *k8sNamespace, *dashboardName, *compact, k8sAnnotations)
 	if err != nil {
-		panic(fmt.Sprintf("Error: %s could not be written (%s)", *manifestFile, err))
+		log.Fatal().Err(err).Msg("")
 	}
 }
