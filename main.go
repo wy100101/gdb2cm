@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/EJKinger/gdb2cm"
+	"github.com/EJKinger/gdb2cm/pkg"
 	"github.com/alecthomas/kingpin"
 	"github.com/rs/zerolog/log"
 )
