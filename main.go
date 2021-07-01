@@ -1,9 +1,9 @@
 package main
 
 import (
-	"github.com/EJKinger/gdb2cm/pkg"
 	"github.com/alecthomas/kingpin"
 	"github.com/rs/zerolog/log"
+	"github.com/wy100101/gdb2cm/pkg"
 )
 
 var (
