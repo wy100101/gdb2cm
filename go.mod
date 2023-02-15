@@ -11,9 +11,11 @@ require (
 	github.com/gosimple/slug v1.9.0 // indirect
 	github.com/grafana/grafana v6.1.6+incompatible
 	github.com/inconshreveable/log15 v0.0.0-20201112154412-8562bdadbbac // indirect
+	github.com/mattn/go-colorable v0.0.9 // indirect
 	github.com/mattn/go-isatty v0.0.12 // indirect
-	github.com/prometheus/client_golang v1.10.0 // indirect
+	github.com/prometheus/client_golang v1.11.1 // indirect
 	github.com/rs/zerolog v1.23.0
+	github.com/smartystreets/goconvey v1.6.4 // indirect
 	github.com/teris-io/shortid v0.0.0-20201117134242-e59966efd125 // indirect
 	golang.org/x/oauth2 v0.0.0-20210323180902-22b0adad7558 // indirect
 	gopkg.in/yaml.v2 v2.4.0
